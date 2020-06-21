@@ -224,71 +224,124 @@ exports.addUserCourse = async (req, res, next) => { //[]
         let checkforUser = await User.findOne({
             _id: id
         });
-        let checkforTheCourse = await Course.findOne({
-            courseCode
-        });
-        //-----------
-        let getCoursePrerequisite = await Course.findOne({
-            courseCode,
-        }, { prerequisite: 1 });
-        let coursePrerequisite = getCoursePrerequisite.prerequisite;
-        // console.log(coursePrerequisite)
-        let checkforcourse = await User.findOne({
-            _id: id,
-        }, { courses: { $elemMatch: { Id: courseCode, status: 'pass' } } });
-        // console.log(checkforcourse)
-        let checkforcourseregisteration = await User.findOne({
-            _id: id,
-        }, { courses: { $elemMatch: { Id: courseCode, status: 'new' } } });
-        // console.log(checkforcourseregisteration)
-
-        //-----------
-        if (coursePrerequisite != '-') {
-            let getCoursePrerequisitedata = await Course.findOne({
-                courseName: coursePrerequisite
+        if (checkforUser.role == 'student') {
+            let checkforTheCourse = await Course.findOne({
+                courseCode
             });
-            let checkforcoursePrerequisiteRegisteredandpass = await User.findOne({
+            //-----------
+            let getCoursePrerequisite = await Course.findOne({
+                courseCode,
+            }, { prerequisite: 1 });
+            let coursePrerequisite = getCoursePrerequisite.prerequisite;
+            let checkforcourse = await User.findOne({
                 _id: id,
-            }, { courses: { $elemMatch: { Id: getCoursePrerequisitedata.courseCode, status: 'pass' } } });
-
-            let checkforcoursePrerequisiteRegisteredandfail = await User.findOne({
+            }, { courses: { $elemMatch: { Id: courseCode, status: 'pass' } } });
+            let checkforcourseregisteration = await User.findOne({
                 _id: id,
-            }, { courses: { $elemMatch: { Id: getCoursePrerequisitedata.courseCode, status: 'fail' } } });
+            }, { courses: { $elemMatch: { Id: courseCode, status: 'new' } } });
 
-            if (checkforcoursePrerequisiteRegisteredandpass.courses.length == 0 && checkforcoursePrerequisiteRegisteredandfail.courses.length == 0) {
-                return res.status(400).json({
-                    icon: '&#xE5CD;', style: 'error',
-                    msg: "You Must Resigster" + " " + getCoursePrerequisitedata.courseName + " " + "Before" + " " + checkforTheCourse.courseName
+            //-----------
+            if (coursePrerequisite != '-') {
+                let getCoursePrerequisitedata = await Course.findOne({
+                    courseName: coursePrerequisite
                 });
+                let checkforcoursePrerequisiteRegisteredandpass = await User.findOne({
+                    _id: id,
+                }, { courses: { $elemMatch: { Id: getCoursePrerequisitedata.courseCode, status: 'pass' } } });
+
+                let checkforcoursePrerequisiteRegisteredandfail = await User.findOne({
+                    _id: id,
+                }, { courses: { $elemMatch: { Id: getCoursePrerequisitedata.courseCode, status: 'fail' } } });
+
+                if (checkforcoursePrerequisiteRegisteredandpass.courses.length == 0 && checkforcoursePrerequisiteRegisteredandfail.courses.length == 0) {
+                    return res.status(400).json({
+                        icon: '&#xE5CD;', style: 'error',
+                        msg: "You Must Resigster" + " " + getCoursePrerequisitedata.courseName + " " + "Before" + " " + checkforTheCourse.courseName
+                    });
+                }
+                else if (!checkforUser) {
+                    return res.status(400).json({
+                        icon: '&#xE5CD;', style: 'error',
+                        msg: "User Not Found"
+                    });
+                } else if (checkforcourse.courses.length > 0) {
+
+                    return res.status(400).json({
+                        icon: '&#xE5CD;', style: 'error',
+                        msg: "This User Had Register This Course Before And Passed It"
+                    });
+
+                }
+                else if (checkforcourseregisteration.courses.length > 0) {
+
+                    return res.status(400).json({
+                        icon: '&#xE5CD;', style: 'error',
+                        msg: "This User Registered This Course"
+                    });
+                } else if (!checkforTheCourse) {
+
+                    return res.status(400).json({
+                        icon: '&#xE5CD;', style: 'error',
+                        msg: "This Course Not Found"
+                    });
+                } else {
+                    adminService.addUserCourse(id, courseCode).then((course) => {
+
+                        if (course) {
+                            res.status(200).json({ icon: '&#xE876;', style: 'success', msg: 'course is added successfuly' });
+                        } else {
+                            res.status(500).json({ icon: '&#xE5CD;', style: 'error', msg: "There Is No Opened Semester For This Course Yet" });
+                        }
+                    });
+                }
             }
-            else if (!checkforUser) {
-                return res.status(400).json({
-                    icon: '&#xE5CD;', style: 'error',
-                    msg: "User Not Found"
-                });
-            } else if (checkforcourse.courses.length > 0) {
-
-                return res.status(400).json({
-                    icon: '&#xE5CD;', style: 'error',
-                    msg: "This User Had Register This Course Before And Passed It"
-                });
+            else {
+                if (!checkforUser) {
+                    return res.status(400).json({
+                        icon: '&#xE5CD;', style: 'error',
+                        msg: "User Not Found"
+                    });
+                } else if (checkforcourse.courses.length > 0) {
+                    return res.status(400).json({
+                        icon: '&#xE5CD;', style: 'error',
+                        msg: "This User Had Register This Course Before And Passed It"
+                    });
+                }
+                else if (checkforcourseregisteration.courses.length > 0) {
+                    return res.status(400).json({
+                        icon: '&#xE5CD;', style: 'error',
+                        msg: "This User Registered This Course"
+                    });
+                } else if (!checkforTheCourse) {
+                    return res.status(400).json({
+                        icon: '&#xE5CD;', style: 'error',
+                        msg: "This Course Not Found"
+                    });
+                } else {
+                    adminService.addUserCourse(id, courseCode).then((course) => {
+                        if (course) {
+                            res.status(200).json({ icon: '&#xE876;', style: 'success', msg: 'course is added successfuly' });
+                        } else {
+                            res.status(500).json({ icon: '&#xE5CD;', style: 'error', msg: "There Is No Opened Semester For This Course Yet" });
+                        }
+                    });
+                }
 
             }
-            else if (checkforcourseregisteration.courses.length > 0) {
+        }
+        else if (checkforUser.role == 'teacher') {
+            let checkforcourseregisteration = await User.findOne({
+                _id: id,
+            }, { courses: { $elemMatch: { Id: courseCode, status: 'new' } } });
+            if (checkforcourseregisteration.courses.length > 0) {
 
                 return res.status(400).json({
                     icon: '&#xE5CD;', style: 'error',
                     msg: "This User Registered This Course"
                 });
-            } else if (!checkforTheCourse) {
-
-                return res.status(400).json({
-                    icon: '&#xE5CD;', style: 'error',
-                    msg: "This Course Not Found"
-                });
-            } else {
+            }
+            else {
                 adminService.addUserCourse(id, courseCode).then((course) => {
-
                     if (course) {
                         res.status(200).json({ icon: '&#xE876;', style: 'success', msg: 'course is added successfuly' });
                     } else {
@@ -297,39 +350,7 @@ exports.addUserCourse = async (req, res, next) => { //[]
                 });
             }
         }
-        else {
-            if (!checkforUser) {
-                return res.status(400).json({
-                    icon: '&#xE5CD;', style: 'error',
-                    msg: "User Not Found"
-                });
-            } else if (checkforcourse.courses.length > 0) {
-                return res.status(400).json({
-                    icon: '&#xE5CD;', style: 'error',
-                    msg: "This User Had Register This Course Before And Passed It"
-                });
-            }
-            else if (checkforcourseregisteration.courses.length > 0) {
-                return res.status(400).json({
-                    icon: '&#xE5CD;', style: 'error',
-                    msg: "This User Registered This Course"
-                });
-            } else if (!checkforTheCourse) {
-                return res.status(400).json({
-                    icon: '&#xE5CD;', style: 'error',
-                    msg: "This Course Not Found"
-                });
-            } else {
-                adminService.addUserCourse(id, courseCode).then((course) => {
-                    if (course) {
-                        res.status(200).json({ icon: '&#xE876;', style: 'success', msg: 'course is added successfuly' });
-                    } else {
-                        res.status(500).json({ icon: '&#xE5CD;', style: 'error', msg: "There Is No Opened Semester For This Course Yet" });
-                    }
-                });
-            }
 
-        }
 
         //-------------------
 
@@ -842,29 +863,14 @@ exports.decidePassOrFail = async (req, res, next) => {
             });
             next();
         }
-        res.status(200).json({
-            msg: "No Opened Semester"
-        });
+        else if (openemesters.semesters.length == 0) {
+            res.status(200).json({
+                msg: "No Opened Semester"
+            });
+        }
 
     } catch (error) {
         next(error);
-    }
-}
-// ---------------------------------------------------------------------------------------------------------------------------------------
-// ---------------------------------------------------------------------------------------------------------------------------------------
-exports.grantAccess = function (action, resource) {
-    return async (req, res, next) => {
-        try {
-            const permission = roles.can(req.user.role)[action](resource);
-            if (!permission.granted) {
-                return res.status(401).json({
-                    error: "You don't have enough permission to perform this action"
-                });
-            }
-            next()
-        } catch (error) {
-            next(error)
-        }
     }
 }
 exports.calculatMyCreditHours = async (req, res, next) => {
@@ -906,6 +912,24 @@ exports.calculatMyCreditHours = async (req, res, next) => {
         next(error);
     }
 }
+// ---------------------------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------------------------
+exports.grantAccess = function (action, resource) {
+    return async (req, res, next) => {
+        try {
+            const permission = roles.can(req.user.role)[action](resource);
+            if (!permission.granted) {
+                return res.status(401).json({
+                    error: "You don't have enough permission to perform this action"
+                });
+            }
+            next()
+        } catch (error) {
+            next(error)
+        }
+    }
+}
+
 exports.allowIfLoggedin = async (req, res, next) => {
     try {
         const user = res.locals.loggedInUser;
